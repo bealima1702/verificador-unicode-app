@@ -1,4 +1,5 @@
 import streamlit as st
+from collections import Counter
 
 # Dicionário expandido com todos os caracteres invisíveis Unicode fornecidos
 invisible_chars = {
@@ -55,6 +56,7 @@ except:
 
 if st.button("Verificar"):
     resultados = []
+    codigos_detectados = []
     for i, c in enumerate(texto):
         code = ord(c)
         if code in invisible_chars:
@@ -63,12 +65,19 @@ if st.button("Verificar"):
                 "Unicode": f"U+{code:04X}",
                 "Descrição": invisible_chars[code]
             })
+            codigos_detectados.append(code)
 
     if resultados:
         st.success(f"Foram encontrados {len(resultados)} caractere(s) invisível(is).")
-        st.table(resultados)
 
-        st.markdown("### 🧠 Texto Anotado com Destaques")
+        contagem = Counter(codigos_detectados)
+        st.markdown("### 📊 Estatísticas por Tipo")
+        for code, count in contagem.items():
+            label = f"U+{code:04X}"
+            nome = invisible_chars[code]
+            st.markdown(f"**{count}×** <span style='background-color:#00D1B2;padding:2px 6px;border-radius:4px;color:black;'> {label} {nome.split('(')[0].strip()} </span>", unsafe_allow_html=True)
+
+        st.markdown("### ✨ Caracteres Identificados")
         texto_anotado = ""
         for i, c in enumerate(texto):
             code = ord(c)
