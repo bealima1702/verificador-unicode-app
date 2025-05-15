@@ -1,9 +1,8 @@
 import streamlit as st
-import base64
 from collections import Counter
 
-# Dicionário de caracteres invisíveis (códigos Unicode e nomes técnicos)
-invisible_map = {
+# Dicionário expandido com todos os caracteres invisíveis Unicode fornecidos
+invisible_chars = {
     0x0020: "Space (U+0020)",
     0x00A0: "Non-breaking Space (U+00A0)",
     0x2000: "En Quad (U+2000)",
@@ -41,31 +40,30 @@ invisible_map = {
     0xFFFA: "Interlinear Annotation Separator (U+FFFA)",
     0xFFFB: "Interlinear Annotation Terminator (U+FFFB)"
 }
+
+# Adiciona o intervalo de FE00 a FE0F, caso ainda não esteja incluso
 for code in range(0xFE00, 0xFE10):
-    if code not in invisible_map:
-        invisible_map[code] = f"Variation Selector (U+{code:04X})"
+    if code not in invisible_chars:
+        invisible_chars[code] = f"Variation Selector (U+{code:04X})"
 
-invisible_set = set(chr(c) for c in invisible_map.keys())
+st.title("🔍 Verificador de Caracteres Invisíveis (Unicode)")
 
-st.title("🧰 Verificador & Limpador de Caracteres Invisíveis (Unicode)")
+raw_text = st.text_area("Cole seu texto aqui:", height=250)
+try:
+    texto = raw_text.encode().decode("unicode_escape")
+except:
+    texto = raw_text
 
-# Estado de sessão para preservar o texto limpo após clique
-delete_requested = st.session_state.get("delete_requested", False)
-texto_original = st.session_state.get("texto_original", "")
-
-texto = st.text_area("Cole seu texto aqui:", value=texto_original, height=250, key="input_area")
-
-if st.button("Verificar texto"):
-    st.session_state.texto_original = texto
+if st.button("Verificar"):
     resultados = []
     codigos_detectados = []
     for i, c in enumerate(texto):
         code = ord(c)
-        if code in invisible_map:
+        if code in invisible_chars:
             resultados.append({
                 "Posição": i,
                 "Unicode": f"U+{code:04X}",
-                "Descrição": invisible_map[code]
+                "Descrição": invisible_chars[code]
             })
             codigos_detectados.append(code)
 
@@ -76,16 +74,16 @@ if st.button("Verificar texto"):
         st.markdown("### 📊 Estatísticas por Tipo")
         for code, count in contagem.items():
             label = f"U+{code:04X}"
-            nome = invisible_map[code]
+            nome = invisible_chars[code]
             st.markdown(f"**{count}×** <span style='background-color:#00D1B2;padding:2px 6px;border-radius:4px;color:black;'> {label} {nome.split('(')[0].strip()} </span>", unsafe_allow_html=True)
 
         st.markdown("### ✨ Caracteres Identificados")
         texto_anotado = ""
         for i, c in enumerate(texto):
             code = ord(c)
-            if code in invisible_map:
+            if code in invisible_chars:
                 label = f"U+{code:04X}"
-                tooltip = invisible_map[code]
+                tooltip = invisible_chars[code]
                 span = f'<span style="background-color:#FFE082; padding:2px; margin:1px; border-radius:4px;" title="{tooltip}">{label}</span>'
                 texto_anotado += span
             else:
@@ -96,33 +94,8 @@ if st.button("Verificar texto"):
             f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#F4F4F4; border-radius:6px;'>{texto_anotado}</div>",
             unsafe_allow_html=True
         )
-
-        if st.button("🧹 Deseja limpar os caracteres invisíveis?"):
-            st.session_state.delete_requested = True
-
-if st.session_state.get("delete_requested", False):
-    texto = st.session_state.get("texto_original", "")
-    texto_limpo = ''.join(c for c in texto if c not in invisible_set)
-    st.success("Texto limpo com sucesso!")
-    st.markdown("### ✨ Texto Limpo")
-    st.code(texto_limpo, language="markdown")
-    st.download_button("📄 Baixar .txt limpo", texto_limpo, file_name="texto_limpo.txt")
-
-    st.markdown("### 🔍 Visualização com remoções destacadas")
-    destaque = ""
-    for i, c in enumerate(texto):
-        if c in invisible_set:
-            code = ord(c)
-            label = f"U+{code:04X}"
-            destaque += f'<span style="background-color:#EF9A9A; padding:2px; margin:1px; border-radius:4px;">{label}</span>'
-        else:
-            safe_char = c.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            destaque += safe_char
-
-    st.markdown(
-        f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#FAFAFA; border-radius:6px;'>{destaque}</div>",
-        unsafe_allow_html=True
-    )
+    else:
+        st.info("Nenhum caractere invisível foi encontrado.")
 
 st.markdown("---")
-st.caption("Ferramenta Synap Digital para auditoria e limpeza de caracteres invisíveis Unicode.")
+st.caption("Ferramenta criada por Synap Digital com suporte à biblioteca invisível completa.")
