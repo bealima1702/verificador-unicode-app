@@ -1,8 +1,9 @@
 import streamlit as st
+import base64
 from collections import Counter
 
-# Dicionário expandido com todos os caracteres invisíveis Unicode fornecidos
-invisible_chars = {
+# Dicionário de caracteres invisíveis (códigos Unicode e nomes técnicos)
+invisible_map = {
     0x0020: "Space (U+0020)",
     0x00A0: "Non-breaking Space (U+00A0)",
     0x2000: "En Quad (U+2000)",
@@ -40,30 +41,26 @@ invisible_chars = {
     0xFFFA: "Interlinear Annotation Separator (U+FFFA)",
     0xFFFB: "Interlinear Annotation Terminator (U+FFFB)"
 }
-
-# Adiciona o intervalo de FE00 a FE0F, caso ainda não esteja incluso
 for code in range(0xFE00, 0xFE10):
-    if code not in invisible_chars:
-        invisible_chars[code] = f"Variation Selector (U+{code:04X})"
+    if code not in invisible_map:
+        invisible_map[code] = f"Variation Selector (U+{code:04X})"
 
-st.title("🔍 Verificador de Caracteres Invisíveis (Unicode)")
+invisible_set = set(chr(c) for c in invisible_map.keys())
 
-raw_text = st.text_area("Cole seu texto aqui:", height=250)
-try:
-    texto = raw_text.encode().decode("unicode_escape")
-except:
-    texto = raw_text
+st.title("🧰 Verificador & Limpador de Caracteres Invisíveis (Unicode)")
 
-if st.button("Verificar"):
+texto = st.text_area("Cole seu texto aqui:", height=250)
+
+if st.button("Verificar texto"):
     resultados = []
     codigos_detectados = []
     for i, c in enumerate(texto):
         code = ord(c)
-        if code in invisible_chars:
+        if code in invisible_map:
             resultados.append({
                 "Posição": i,
                 "Unicode": f"U+{code:04X}",
-                "Descrição": invisible_chars[code]
+                "Descrição": invisible_map[code]
             })
             codigos_detectados.append(code)
 
@@ -74,16 +71,16 @@ if st.button("Verificar"):
         st.markdown("### 📊 Estatísticas por Tipo")
         for code, count in contagem.items():
             label = f"U+{code:04X}"
-            nome = invisible_chars[code]
+            nome = invisible_map[code]
             st.markdown(f"**{count}×** <span style='background-color:#00D1B2;padding:2px 6px;border-radius:4px;color:black;'> {label} {nome.split('(')[0].strip()} </span>", unsafe_allow_html=True)
 
         st.markdown("### ✨ Caracteres Identificados")
         texto_anotado = ""
         for i, c in enumerate(texto):
             code = ord(c)
-            if code in invisible_chars:
+            if code in invisible_map:
                 label = f"U+{code:04X}"
-                tooltip = invisible_chars[code]
+                tooltip = invisible_map[code]
                 span = f'<span style="background-color:#FFE082; padding:2px; margin:1px; border-radius:4px;" title="{tooltip}">{label}</span>'
                 texto_anotado += span
             else:
@@ -94,26 +91,18 @@ if st.button("Verificar"):
             f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#F4F4F4; border-radius:6px;'>{texto_anotado}</div>",
             unsafe_allow_html=True
         )
-    else:
-        st.info("Nenhum caractere invisível foi encontrado.")
 
-elif modo == "🧹 Limpar":
-    if st.button("Limpar texto"):
-        texto_limpo = ''.join(c for c in texto if c not in invisible_set)
-        removidos = [c for c in texto if c in invisible_set]
+        if st.button("🧹 Deseja limpar os caracteres invisíveis?"):
+            texto_limpo = ''.join(c for c in texto if c not in invisible_set)
+            st.markdown("### ✨ Texto Limpo")
+            st.code(texto_limpo, language="markdown")
 
-        st.success(f"{len(removidos)} caractere(s) invisível(is) foram removidos.")
+            b64 = base64.b64encode(texto_limpo.encode()).decode()
+            href = f'<a href="data:file/txt;base64,{b64}" download="texto_limpo.txt">📄 Baixar .txt limpo</a>'
+            st.markdown(href, unsafe_allow_html=True)
 
-        st.markdown("### ✨ Texto Limpo")
-        st.code(texto_limpo, language="markdown")
+            st.markdown("<br><strong>⚠️ Copie o texto manualmente ou use a versão para download.</strong>", unsafe_allow_html=True)
 
-        b64 = base64.b64encode(texto_limpo.encode()).decode()
-        href = f'<a href="data:file/txt;base64,{b64}" download="texto_limpo.txt">📄 Baixar .txt limpo</a>'
-        st.markdown(href, unsafe_allow_html=True)
-
-        st.markdown("<br><strong>⚠️ Copie o texto manualmente ou use a versão para download.</strong>", unsafe_allow_html=True)
-
-        if texto_limpo != texto:
             st.markdown("### 🔍 Visualização com remoções destacadas")
             destaque = ""
             for i, c in enumerate(texto):
@@ -129,5 +118,9 @@ elif modo == "🧹 Limpar":
                 f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#FAFAFA; border-radius:6px;'>{destaque}</div>",
                 unsafe_allow_html=True
             )
+
+    else:
+        st.info("Nenhum caractere invisível foi encontrado.")
+
 st.markdown("---")
-st.caption("Ferramenta criada por Synap Digital com suporte à biblioteca invisível completa.")
+st.caption("Ferramenta Synap Digital para auditoria e limpeza de caracteres invisíveis Unicode.")
