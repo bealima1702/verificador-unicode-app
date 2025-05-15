@@ -18,7 +18,11 @@ invisible_chars = {
 
 st.title("🔍 Verificador de Caracteres Invisíveis (Unicode)")
 
-texto = st.text_area("Cole seu texto aqui:", height=250)
+raw_text = st.text_area("Cole seu texto aqui:", height=250)
+try:
+    texto = raw_text.encode().decode("unicode_escape")
+except:
+    texto = raw_text  # fallback se a decodificação falhar
 
 if st.button("Verificar"):
     resultados = []
