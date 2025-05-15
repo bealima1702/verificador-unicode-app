@@ -40,7 +40,7 @@ invisible_chars = {
     0xFFFB: "Interlinear Annotation Terminator (U+FFFB)"
 }
 
-# Incluir também os variation selectors de U+FE00 a U+FE0F (se não já incluso)
+# Adiciona o intervalo de FE00 a FE0F, caso ainda não esteja incluso
 for code in range(0xFE00, 0xFE10):
     if code not in invisible_chars:
         invisible_chars[code] = f"Variation Selector (U+{code:04X})"
@@ -51,7 +51,7 @@ raw_text = st.text_area("Cole seu texto aqui:", height=250)
 try:
     texto = raw_text.encode().decode("unicode_escape")
 except:
-    texto = raw_text  # fallback
+    texto = raw_text
 
 if st.button("Verificar"):
     resultados = []
@@ -67,6 +67,24 @@ if st.button("Verificar"):
     if resultados:
         st.success(f"Foram encontrados {len(resultados)} caractere(s) invisível(is).")
         st.table(resultados)
+
+        st.markdown("### 🧠 Texto Anotado com Destaques")
+        texto_anotado = ""
+        for i, c in enumerate(texto):
+            code = ord(c)
+            if code in invisible_chars:
+                label = f"U+{code:04X}"
+                tooltip = invisible_chars[code]
+                span = f'<span style="background-color:#FFE082; padding:2px; margin:1px; border-radius:4px;" title="{tooltip}">{label}</span>'
+                texto_anotado += span
+            else:
+                safe_char = c.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                texto_anotado += safe_char
+
+        st.markdown(
+            f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#F4F4F4; border-radius:6px;'>{texto_anotado}</div>",
+            unsafe_allow_html=True
+        )
     else:
         st.info("Nenhum caractere invisível foi encontrado.")
 
