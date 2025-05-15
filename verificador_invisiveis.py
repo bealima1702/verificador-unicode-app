@@ -49,9 +49,14 @@ invisible_set = set(chr(c) for c in invisible_map.keys())
 
 st.title("🧰 Verificador & Limpador de Caracteres Invisíveis (Unicode)")
 
-texto = st.text_area("Cole seu texto aqui:", height=250)
+# Estado de sessão para preservar o texto limpo após clique
+delete_requested = st.session_state.get("delete_requested", False)
+texto_original = st.session_state.get("texto_original", "")
+
+texto = st.text_area("Cole seu texto aqui:", value=texto_original, height=250, key="input_area")
 
 if st.button("Verificar texto"):
+    st.session_state.texto_original = texto
     resultados = []
     codigos_detectados = []
     for i, c in enumerate(texto):
@@ -93,34 +98,31 @@ if st.button("Verificar texto"):
         )
 
         if st.button("🧹 Deseja limpar os caracteres invisíveis?"):
-            texto_limpo = ''.join(c for c in texto if c not in invisible_set)
-            st.markdown("### ✨ Texto Limpo")
-            st.code(texto_limpo, language="markdown")
+            st.session_state.delete_requested = True
 
-            b64 = base64.b64encode(texto_limpo.encode()).decode()
-            href = f'<a href="data:file/txt;base64,{b64}" download="texto_limpo.txt">📄 Baixar .txt limpo</a>'
-            st.markdown(href, unsafe_allow_html=True)
+if st.session_state.get("delete_requested", False):
+    texto = st.session_state.get("texto_original", "")
+    texto_limpo = ''.join(c for c in texto if c not in invisible_set)
+    st.success("Texto limpo com sucesso!")
+    st.markdown("### ✨ Texto Limpo")
+    st.code(texto_limpo, language="markdown")
+    st.download_button("📄 Baixar .txt limpo", texto_limpo, file_name="texto_limpo.txt")
 
-            st.markdown("<br><strong>⚠️ Copie o texto manualmente ou use a versão para download.</strong>", unsafe_allow_html=True)
+    st.markdown("### 🔍 Visualização com remoções destacadas")
+    destaque = ""
+    for i, c in enumerate(texto):
+        if c in invisible_set:
+            code = ord(c)
+            label = f"U+{code:04X}"
+            destaque += f'<span style="background-color:#EF9A9A; padding:2px; margin:1px; border-radius:4px;">{label}</span>'
+        else:
+            safe_char = c.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            destaque += safe_char
 
-            st.markdown("### 🔍 Visualização com remoções destacadas")
-            destaque = ""
-            for i, c in enumerate(texto):
-                if c in invisible_set:
-                    code = ord(c)
-                    label = f"U+{code:04X}"
-                    destaque += f'<span style="background-color:#EF9A9A; padding:2px; margin:1px; border-radius:4px;">{label}</span>'
-                else:
-                    safe_char = c.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                    destaque += safe_char
-
-            st.markdown(
-                f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#FAFAFA; border-radius:6px;'>{destaque}</div>",
-                unsafe_allow_html=True
-            )
-
-    else:
-        st.info("Nenhum caractere invisível foi encontrado.")
+    st.markdown(
+        f"<div style='font-family:monospace; line-height:1.6; padding:0.5em; background-color:#FAFAFA; border-radius:6px;'>{destaque}</div>",
+        unsafe_allow_html=True
+    )
 
 st.markdown("---")
 st.caption("Ferramenta Synap Digital para auditoria e limpeza de caracteres invisíveis Unicode.")
